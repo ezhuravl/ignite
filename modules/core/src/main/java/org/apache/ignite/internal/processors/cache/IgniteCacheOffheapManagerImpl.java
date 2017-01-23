@@ -120,7 +120,7 @@ public class IgniteCacheOffheapManagerImpl extends GridCacheManagerAdapter imple
 
         indexingEnabled = GridQueryProcessor.isEnabled(cctx.config());
 
-        updateValSizeThreshold = cctx.shared().database().pageMemory().pageSize() / 2;
+        updateValSizeThreshold = cctx.kernalContext().config().getMemoryConfiguration().getPageSize() / 2;
 
         if (cctx.affinityNode()) {
             if (cctx.kernalContext().clientNode()) {
