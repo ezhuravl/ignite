@@ -966,11 +966,11 @@ public class DataPageIO extends PageIO {
 
     /**
      * @param row Row to set link to.
-     * @param buf Page buffer.
+     * @param pageAddr Page address.
      * @param itemId Item ID.
      */
-    private void setLink(CacheDataRow row, long buf, int itemId) {
-        row.link(PageIdUtils.link(getPageId(buf), itemId));
+    private void setLink(CacheDataRow row, long pageAddr, int itemId) {
+        row.link(PageIdUtils.link(getPageId(pageAddr), itemId));
     }
 
     /**
