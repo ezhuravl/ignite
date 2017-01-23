@@ -619,7 +619,7 @@ public class DataPageIO extends PageIO {
         if (isFragmented(pageAddr, dataOff))
             return false;
 
-        writeRowData(pageAddr, dataOff, rowSize, row);
+        writeRowData(pageAddr, dataOff, rowSize, row, false);
 
         return true;
     }
@@ -754,7 +754,7 @@ public class DataPageIO extends PageIO {
 
         int dataOff = getDataOffsetForWrite(pageAddr, fullEntrySize, directCnt, indirectCnt, pageSize);
 
-        writeRowData(pageAddr, dataOff, rowSize, row);
+        writeRowData(pageAddr, dataOff, rowSize, row, true);
 
         int itemId = addItem(pageAddr, fullEntrySize, directCnt, indirectCnt, dataOff, pageSize);
 
@@ -1279,20 +1279,27 @@ public class DataPageIO extends PageIO {
      * @param dataOff Data offset.
      * @param payloadSize Payload size.
      * @param row Data row.
+     * @param newRow {@code False} if existing cache entry is updated, in this case skip key data write.
      * @throws IgniteCheckedException If failed.
      */
     private void writeRowData(
         long pageAddr,
         int dataOff,
         int payloadSize,
-        CacheDataRow row
+        CacheDataRow row,
+        boolean newRow
     ) throws IgniteCheckedException {
         long addr = pageAddr + dataOff;
 
-        PageUtils.putShort(addr, 0, (short)payloadSize);
-        addr += 2;
+        if (newRow) {
+            PageUtils.putShort(addr, 0, (short)payloadSize);
+            addr += 2;
 
-        addr += row.key().putValue(addr);
+            addr += row.key().putValue(addr);
+        }
+        else
+            addr += (2 + row.key().valueBytesLength(null));
+
         addr += row.value().putValue(addr);
 
         CacheVersionIO.write(addr, row.version(), false);
