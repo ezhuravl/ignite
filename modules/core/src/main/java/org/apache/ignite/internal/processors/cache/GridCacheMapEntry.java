@@ -3556,6 +3556,7 @@ public abstract class GridCacheMapEntry extends GridMetadataAwareAdapter impleme
      * @param val Value.
      * @param expireTime Expire time.
      * @param ver New entry version.
+     * @param oldRow Old row if available.
      * @throws IgniteCheckedException If update failed.
      */
     protected void storeValue(@Nullable CacheObject val,

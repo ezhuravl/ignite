@@ -597,6 +597,15 @@ public class DataPageIO extends PageIO {
         return -1;
     }
 
+    /**
+     * @param pageAddr Page address.
+     * @param itemId Item ID.
+     * @param pageSize Page size.
+     * @param row Row.
+     * @param rowSize Row size.
+     * @return {@code True} if entry is not fragmented.
+     * @throws IgniteCheckedException If failed.
+     */
     public boolean updateRow(
         final long pageAddr,
         int itemId,

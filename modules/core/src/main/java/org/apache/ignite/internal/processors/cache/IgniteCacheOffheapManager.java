@@ -301,6 +301,7 @@ public interface IgniteCacheOffheapManager extends GridCacheManager {
          * @param val Value.
          * @param ver Version.
          * @param expireTime Expire time.
+         * @param oldRow Old row if available.
          * @throws IgniteCheckedException If failed.
          */
         void update(KeyCacheObject key,
