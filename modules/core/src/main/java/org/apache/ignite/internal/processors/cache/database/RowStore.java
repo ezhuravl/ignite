@@ -42,6 +42,7 @@ public class RowStore {
 
     /**
      * @param cctx Cache context.
+     * @param freeList Free list.
      */
     public RowStore(GridCacheContext<?,?> cctx, FreeList freeList) {
         assert cctx != null;
@@ -82,8 +83,10 @@ public class RowStore {
     }
 
     /**
-     * @param row Row.
+     * @param link Row link.
+     * @param row New row data.
      * @throws IgniteCheckedException If failed.
+     * @return {@code True} if was able to update row.
      */
     public boolean updateRow(long link, CacheDataRow row) throws IgniteCheckedException {
         return freeList.updateDataRow(link, row);

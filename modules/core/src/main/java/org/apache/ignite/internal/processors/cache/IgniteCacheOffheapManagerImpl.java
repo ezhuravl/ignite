@@ -886,6 +886,12 @@ public class IgniteCacheOffheapManagerImpl extends GridCacheManagerAdapter imple
             return name;
         }
 
+        /**
+         * @param oldRow Old row.
+         * @param dataRow New row.
+         * @return {@code True} if it is possible to update old row data.
+         * @throws IgniteCheckedException If failed.
+         */
         private boolean canUpdateOldRow(@Nullable CacheDataRow oldRow, DataRow dataRow)
             throws IgniteCheckedException {
             if (oldRow == null || indexingEnabled)
@@ -938,7 +944,13 @@ public class IgniteCacheOffheapManagerImpl extends GridCacheManagerAdapter imple
 
                     assert dataRow.link() != 0 : dataRow;
 
-                    old = dataTree.put(dataRow);
+                    if (oldRow != null) {
+                        old = oldRow;
+
+                        dataTree.putx(dataRow);
+                    }
+                    else
+                        old = dataTree.put(dataRow);
 
                     if (old == null)
                         storageSize.incrementAndGet();
