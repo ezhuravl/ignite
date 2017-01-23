@@ -75,9 +75,18 @@ public class RowStore {
 
     /**
      * @param row Row.
+     * @throws IgniteCheckedException If failed.
      */
     public void addRow(CacheDataRow row) throws IgniteCheckedException {
         freeList.insertDataRow(row);
+    }
+
+    /**
+     * @param row Row.
+     * @throws IgniteCheckedException If failed.
+     */
+    public boolean updateRow(long link, CacheDataRow row) throws IgniteCheckedException {
+        return freeList.updateDataRow(link, row);
     }
 
     /**

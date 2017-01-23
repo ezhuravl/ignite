@@ -106,6 +106,9 @@ public class IgniteCacheOffheapManagerImpl extends GridCacheManagerAdapter imple
     /** */
     private final GridSpinBusyLock busyLock = new GridSpinBusyLock();
 
+    /** */
+    private int updateValSizeThreshold;
+
     /** {@inheritDoc} */
     @Override public GridAtomicLong globalRemoveId() {
         return globalRmvId;
@@ -116,6 +119,8 @@ public class IgniteCacheOffheapManagerImpl extends GridCacheManagerAdapter imple
         super.start0();
 
         indexingEnabled = GridQueryProcessor.isEnabled(cctx.config());
+
+        updateValSizeThreshold = cctx.shared().database().pageMemory().pageSize() / 2;
 
         if (cctx.affinityNode()) {
             if (cctx.kernalContext().clientNode()) {
@@ -327,11 +332,12 @@ public class IgniteCacheOffheapManagerImpl extends GridCacheManagerAdapter imple
         GridCacheVersion ver,
         long expireTime,
         int partId,
-        GridDhtLocalPartition part
+        GridDhtLocalPartition part,
+        @Nullable CacheDataRow oldRow
     ) throws IgniteCheckedException {
         assert expireTime >= 0;
 
-        dataStore(part).update(key, partId, val, ver, expireTime);
+        dataStore(part).update(key, partId, val, ver, expireTime, oldRow);
     }
 
     /** {@inheritDoc} */
@@ -880,30 +886,63 @@ public class IgniteCacheOffheapManagerImpl extends GridCacheManagerAdapter imple
             return name;
         }
 
+        private boolean canUpdateOldRow(@Nullable CacheDataRow oldRow, DataRow dataRow)
+            throws IgniteCheckedException {
+            if (oldRow == null || indexingEnabled)
+                return false;
+
+            CacheObjectContext coCtx = cctx.cacheObjectContext();
+
+            int oldLen = oldRow.key().valueBytesLength(coCtx) + oldRow.value().valueBytesLength(coCtx);
+
+            if (oldLen > updateValSizeThreshold)
+                return false;
+
+            int newLen = dataRow.key().valueBytesLength(coCtx) + dataRow.value().valueBytesLength(coCtx);
+
+            return oldLen == newLen;
+        }
+
         /** {@inheritDoc} */
         @Override public void update(KeyCacheObject key,
             int p,
             CacheObject val,
             GridCacheVersion ver,
-            long expireTime) throws IgniteCheckedException {
-            DataRow dataRow = new DataRow(key, val, ver, p, expireTime);
-
-            // Make sure value bytes initialized.
-            key.valueBytes(cctx.cacheObjectContext());
-            val.valueBytes(cctx.cacheObjectContext());
+            long expireTime,
+            @Nullable CacheDataRow oldRow) throws IgniteCheckedException {
+            assert oldRow == null || oldRow.link() != 0L : oldRow;
 
             if (!busyLock.enterBusy())
                 throw new NodeStoppingException("Operation has been cancelled (node is stopping).");
 
             try {
-                rowStore.addRow(dataRow);
+                DataRow dataRow = new DataRow(key, val, ver, p, expireTime);
 
-                assert dataRow.link() != 0 : dataRow;
+                CacheObjectContext coCtx = cctx.cacheObjectContext();
 
-                CacheDataRow old = dataTree.put(dataRow);
+                // Make sure value bytes initialized.
+                key.valueBytes(coCtx);
+                val.valueBytes(coCtx);
 
-                if (old == null)
-                    storageSize.incrementAndGet();
+                CacheDataRow old;
+
+                boolean rmvOld = true;
+
+                if (canUpdateOldRow(oldRow, dataRow) && rowStore.updateRow(oldRow.link(), dataRow)) {
+                    old = oldRow;
+
+                    rmvOld = false;
+                }
+                else {
+                    rowStore.addRow(dataRow);
+
+                    assert dataRow.link() != 0 : dataRow;
+
+                    old = dataTree.put(dataRow);
+
+                    if (old == null)
+                        storageSize.incrementAndGet();
+                }
 
                 if (indexingEnabled) {
                     GridCacheQueryManager qryMgr = cctx.queries();
@@ -922,7 +961,8 @@ public class IgniteCacheOffheapManagerImpl extends GridCacheManagerAdapter imple
                     if (pendingEntries != null && old.expireTime() != 0)
                         pendingEntries.removex(new PendingRow(old.expireTime(), old.link()));
 
-                    rowStore.removeRow(old.link());
+                    if (rmvOld)
+                        rowStore.removeRow(old.link());
                 }
 
                 if (pendingEntries != null && expireTime != 0)

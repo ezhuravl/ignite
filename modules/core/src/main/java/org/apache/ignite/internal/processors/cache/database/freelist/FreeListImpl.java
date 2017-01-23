@@ -71,6 +71,17 @@ public class FreeListImpl extends PagesList implements FreeList, ReuseList {
     private final int MIN_SIZE_FOR_DATA_PAGE;
 
     /** */
+    private final PageHandler<CacheDataRow, Boolean> updateRow =
+        new PageHandler<CacheDataRow, Boolean>() {
+            @Override public Boolean run(Page page, PageIO iox, long pageAddr, CacheDataRow row, int itemId)
+                throws IgniteCheckedException {
+                DataPageIO io = (DataPageIO)iox;
+
+                return io.updateRow(pageAddr, itemId, pageSize(), row, getRowSize(row));
+            }
+        };
+
+    /** */
     private final PageHandler<CacheDataRow, Integer> writeRow =
         new PageHandler<CacheDataRow, Integer>() {
             @Override public Integer run(Page page, PageIO iox, long pageAddr, CacheDataRow row, int written)
@@ -331,6 +342,22 @@ public class FreeListImpl extends PagesList implements FreeList, ReuseList {
             }
         }
         while (written != COMPLETE);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean updateDataRow(long link, CacheDataRow row) throws IgniteCheckedException {
+        assert link != 0;
+
+        long pageId = PageIdUtils.pageId(link);
+        int itemId = PageIdUtils.itemId(link);
+
+        try (Page page = pageMem.page(cacheId, pageId)) {
+            Boolean updated = writePage(pageMem, page, this, updateRow, row, itemId, null);
+
+            assert updated != null; // Can't fail here.
+
+            return updated != null ? updated : false;
+        }
     }
 
     /** {@inheritDoc} */

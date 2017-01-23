@@ -597,6 +597,24 @@ public class DataPageIO extends PageIO {
         return -1;
     }
 
+    public boolean updateRow(
+        final long pageAddr,
+        int itemId,
+        int pageSize,
+        CacheDataRow row,
+        final int rowSize) throws IgniteCheckedException {
+        assert checkIndex(itemId) : itemId;
+
+        final int dataOff = getDataOffset(pageAddr, itemId, pageSize);
+
+        if (isFragmented(pageAddr, dataOff))
+            return false;
+
+        writeRowData(pageAddr, dataOff, rowSize, row);
+
+        return true;
+    }
+
     /**
      * @param pageAddr Page address.
      * @param itemId Fixed item ID (the index used for referencing an entry from the outside).

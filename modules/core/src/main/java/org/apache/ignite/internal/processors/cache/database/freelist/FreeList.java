@@ -29,6 +29,8 @@ public interface FreeList {
      */
     public void insertDataRow(CacheDataRow row) throws IgniteCheckedException;
 
+    public boolean updateDataRow(long link, CacheDataRow row) throws IgniteCheckedException;
+
     /**
      * @param link Row link.
      * @throws IgniteCheckedException If failed.
