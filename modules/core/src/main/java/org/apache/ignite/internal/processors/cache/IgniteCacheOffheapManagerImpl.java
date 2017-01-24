@@ -937,6 +937,8 @@ public class IgniteCacheOffheapManagerImpl extends GridCacheManagerAdapter imple
                 if (canUpdateOldRow(oldRow, dataRow) && rowStore.updateRow(oldRow.link(), dataRow)) {
                     old = oldRow;
 
+                    dataRow.link(oldRow.link());
+
                     rmvOld = false;
                 }
                 else {
@@ -1030,8 +1032,9 @@ public class IgniteCacheOffheapManagerImpl extends GridCacheManagerAdapter imple
         }
 
         /** {@inheritDoc} */
-        @Override public CacheDataRow find(KeyCacheObject key)
-            throws IgniteCheckedException {
+        @Override public CacheDataRow find(KeyCacheObject key) throws IgniteCheckedException {
+            key.valueBytes(cctx.cacheObjectContext());
+
             return dataTree.findOne(new SearchRow(key));
         }
 

@@ -1030,7 +1030,7 @@ public abstract class GridCacheMapEntry extends GridMetadataAwareAdapter impleme
 
         CacheLazyEntry entry0 = null;
 
-        Long updateCntr0;
+        long updateCntr0;
 
         boolean deferred;
 
@@ -3022,7 +3022,7 @@ public abstract class GridCacheMapEntry extends GridMetadataAwareAdapter impleme
     /**
      * @param cntr Updated partition counter.
      */
-    protected void onUpdateFinished(Long cntr) {
+    protected void onUpdateFinished(long cntr) {
         // No-op.
     }
 
